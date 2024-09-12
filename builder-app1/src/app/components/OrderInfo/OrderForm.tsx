@@ -41,14 +41,13 @@ const OrderForm: React.FC = () => {
   };
 
   useEffect(() => {
-    // Ensure this runs only on the client-side
     if (typeof window !== "undefined") {
       const orderType = localStorage.getItem("orderType");
-      setTotalPrice(localStorage.getItem("totalPrice") || "0");
-
+  
       if (orderType === "package") {
         const storedPackage = JSON.parse(localStorage.getItem("selectedPackage") || "{}");
         setSelectedPackage(storedPackage);
+        setTotalPrice(parseFloat(storedPackage.cost).toFixed(2));
       } else {
         const storedSlotsIds = JSON.parse(localStorage.getItem("selectedSlots") || "[]");
         const fetchSlotDetails = async () => {
@@ -56,7 +55,10 @@ const OrderForm: React.FC = () => {
             const response = await fetch("https://radio-fullstack.onrender.com/api/slots");
             const allSlots = await response.json();
             const filteredSlots = allSlots.filter((slot: Slot) => storedSlotsIds.includes(slot._id));
+  
+            const totalCost = filteredSlots.reduce((sum : number, slot : Slot) => sum + parseFloat(slot.cost), 0);
             setSelectedSlots(filteredSlots);
+            setTotalPrice(totalCost.toFixed(2)); // Initialize total price as a float
           } catch (error) {
             console.error("Error fetching slots:", error);
           }
@@ -65,95 +67,120 @@ const OrderForm: React.FC = () => {
       }
     }
   }, []);
-
+  
+  const handleDeleteSlot = (slotId: string) => {
+    setSelectedSlots((prevSlots) => {
+      // Filter out the slot that is being removed
+      const updatedSlots = prevSlots.filter((slot) => slot._id !== slotId);
+  
+      // Recalculate the total price based on the remaining slots
+      const updatedTotalPrice = updatedSlots.reduce((sum, slot) => {
+        return sum + parseFloat(slot.cost);
+      }, 0);
+  
+      // Update the total price with the recalculated sum
+      setTotalPrice(updatedTotalPrice.toFixed(2));
+  
+      return updatedSlots;
+    });
+  };
+  
   const handleCloseNotification = () => {
     setNotification(null);
   };
 
   const handleSave = async () => {
-    if (selectedFile) {
-      const audioRef = storageRef(storage, `audio/${selectedFile.name}`);
-      const uploadTask = uploadBytesResumable(audioRef, selectedFile);
-
-      setIsUploading(true);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(progress);
-        },
-        (error) => {
-          console.error("Upload failed:", error);
-          setNotification({ message: "Erreur lors de la création de la réservation", type: "error" });
-          setIsUploading(false);
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-          // Ensure this runs only on the client-side
-          if (typeof window !== "undefined") {
-            const userId = localStorage.getItem("userId"); // Fetch the logged-in user's ID from localStorage
-
-            let reservationData;
-            if (selectedPackage) {
-              reservationData = {
-                user_id: userId, // Use the dynamic userId
-                package: selectedPackage,
-                adname: adName,
-                addomaine: adDomaine,
-                totalPrice:selectedPackage.cost,
-                audioFile: downloadURL,
-                audioDuration,
-              };
+    // Validation: Check if audio file is uploaded
+    if (!selectedFile) {
+      setNotification({ message: "المرجو تحميل ملف صوتي", type: "error" });
+      return;
+    }
+  
+    // Validation: Check if there is at least one selected slot or a package
+    if (!selectedPackage && selectedSlots.length === 0) {
+      setNotification({ message: "المرجو اختيار باقة أو توقيت", type: "error" });
+      return;
+    }
+  
+    const audioRef = storageRef(storage, `audio/${selectedFile.name}`);
+    const uploadTask = uploadBytesResumable(audioRef, selectedFile);
+  
+    setIsUploading(true);
+  
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setProgress(progress);
+      },
+      (error) => {
+        console.error("Upload failed:", error);
+        setNotification({ message: "Erreur lors de la création de la réservation", type: "error" });
+        setIsUploading(false);
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+  
+        // Ensure this runs only on the client-side
+        if (typeof window !== "undefined") {
+          const userId = localStorage.getItem("userId"); // Fetch the logged-in user's ID from localStorage
+  
+          let reservationData;
+          if (selectedPackage) {
+            reservationData = {
+              user_id: userId, // Use the dynamic userId
+              package: selectedPackage,
+              adname: adName,
+              addomaine: adDomaine,
+              totalPrice: selectedPackage.cost,
+              audioFile: downloadURL,
+              audioDuration,
+            };
+          } else {
+            const slotIds = selectedSlots.map((slot) => slot._id);
+            reservationData = {
+              user_id: userId, // Use the dynamic userId
+              slots: slotIds,
+              adname: adName,
+              addomaine: adDomaine,
+              totalPrice,
+              audioFile: downloadURL,
+              audioDuration,
+            };
+          }
+  
+          try {
+            const response = await fetch("https://radio-fullstack.onrender.com/api/reservations/create", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(reservationData),
+            });
+  
+            const data = await response.json();
+            if (response.ok) {
+              setNotification({ message: "La réservation a bien été réalisée", type: "success" });
+              setIsReservationSuccessful(true);
+  
+              // Clear localStorage after reservation
+              localStorage.removeItem("selectedSlots");
+              localStorage.removeItem("selectedPackage");
+              localStorage.removeItem("orderType");
             } else {
-              const slotIds = selectedSlots.map((slot) => slot._id);
-              reservationData = {
-                user_id: userId, // Use the dynamic userId
-                slots: slotIds,
-                adname: adName,
-                addomaine: adDomaine,
-                totalPrice,
-                audioFile: downloadURL,
-                audioDuration,
-              };
+              setNotification({ message: data.msg || "Erreur lors de la création de la réservation", type: "error" });
             }
-
-            try {
-              const response = await fetch("https://radio-fullstack.onrender.com/api/reservations/create", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(reservationData),
-              });
-
-              const data = await response.json();
-              if (response.ok) {
-                setNotification({ message: "La réservation a bien été réalisée", type: "success" });
-                setIsReservationSuccessful(true);
-
-                // Clear localStorage after reservation
-                localStorage.removeItem("selectedSlots");
-                localStorage.removeItem("selectedPackage");
-                localStorage.removeItem("orderType");
-              } else {
-                setNotification({ message: data.msg || "Erreur lors de la création de la réservation", type: "error" });
-              }
-            } catch (error) {
-              console.error("Error during reservation creation:", error);
-              setNotification({ message: "Erreur lors de la création de la réservation", type: "error" });
-            } finally {
-              setIsUploading(false);
-            }
+          } catch (error) {
+            console.error("Error during reservation creation:", error);
+            setNotification({ message: "Erreur lors de la création de la réservation", type: "error" });
+          } finally {
+            setIsUploading(false);
           }
         }
-      );
-    } else {
-      console.warn("No file selected for upload");
-    }
+      }
+    );
   };
-
+  
   const handleFileSelect = (file: File | null, duration: number) => {
     setSelectedFile(file);
     setAudioDuration(duration);
@@ -198,10 +225,10 @@ const OrderForm: React.FC = () => {
       )}
 
       {isConfirmationStep ? (
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-6 max-w-full md:px-5">
           {/* Premier Container */}
-          <section className="flex flex-row justify-between items-start bg-white p-6 rounded-lg shadow-md">
-            <div className="w-1/2 flex flex-col space-y-4">
+          <section className="flex flex-col md:flex-row justify-between items-start bg-white p-6 rounded-lg shadow-md space-y-4 md:space-y-0">
+            <div className="md:w-1/2 w-full flex flex-col space-y-4">
               <div className="flex items-center">
                 <h3 className="text-sm font-bold leading-6 text-gray-500 mr-4">إسم الإشهار:</h3>
                 <p className="text-sm font-medium text-gray-800">{adName}</p>
@@ -216,9 +243,9 @@ const OrderForm: React.FC = () => {
               </div>
             </div>
 
-            <div className="w-px bg-gray-300 mx-4 h-full"></div> {/* Solid Separator */}
+            <div className="w-full md:w-px bg-gray-300 mx-4 h-full"></div> {/* Solid Separator */}
 
-            <div className="w-1/2 flex flex-col items-center">
+            <div className="md:w-1/2 w-full flex flex-col items-center">
               <h2 className="text-base font-bold tracking-wide leading-6 text-slate-900 text-center mb-2">الملف الصوتي</h2>
               <div className="mt-3">{audioUrl ? <AudioPlayer src={audioUrl}  /> : <p className="text-gray-600">لم يتم تحميل ملف صوتي.</p>}</div>
             </div>
@@ -226,59 +253,55 @@ const OrderForm: React.FC = () => {
           <h2 className="text-xl font-extrabold tracking-wide leading-8 text-slate-900">تأكيد الطلبية</h2>
 
           <section className="w-full bg-white p-6 rounded-lg shadow-md">
+  {selectedPackage ? (
+    <div className="mt-4">
+      <p className="flex justify-between font-bold">
+        <span>اسم الباقة:</span>
+        <span className="font-normal">{selectedPackage.name}</span>
+      </p>
+      <p className="flex justify-between font-bold">
+        <span>تكلفة الباقة:</span>
+        <span className="font-normal">{selectedPackage.cost} د.م.</span>
+      </p>
+      <p className="flex justify-between font-bold">
+        <span>مدة الباقة:</span>
+        <span className="font-normal">{selectedPackage.duration}</span>
+      </p>
+      <p className="flex justify-between font-bold">
+        <span>مدة الإعلان:</span>
+        <span className="font-normal">{selectedPackage.adLength} ثواني</span>
+      </p>
+    </div>
+  ) : (
+    <table className="min-w-full bg-white mt-4">
+      <thead>
+        <tr>
+          <th className="px-4 py-2 text-right">التاريخ</th>
+          <th className="px-4 py-2 text-right">الساعة</th>
+          <th className="px-4 py-2 text-right">الثمن</th>
+          <th className="px-4 py-2 text-right">إجراء</th>
+        </tr>
+      </thead>
+      <tbody>
+        {selectedSlots.map((slot, index) => (
+          <tr key={index} className="border-b">
+            <td className="px-4 py-2 text-right">{new Date(slot.date).toLocaleDateString("en-GB")}</td>
+            <td className="px-4 py-2 text-right">
+              {new Date(slot.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
+              {new Date(slot.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </td>
+            <td className="px-4 py-2 text-right">{slot.cost} درهم</td>
+            <td className="px-4 py-2 text-red-600 cursor-pointer text-right" onClick={() => handleDeleteSlot(slot._id)}>
+              حذف
+            </td>
+          </tr>
+        ))}
+      </tbody>
+      <p className="text-lg font-bold">المجموع: {totalPrice} درهم</p>
+    </table>
+  )}
+</section>
 
-            {selectedPackage ? (
-              // If a package is selected, display package data
-              <div className="mt-4">
-              <p className="flex justify-between font-bold">
-                <span>اسم الباقة:</span>
-                <span className="font-normal">{selectedPackage.name}</span>
-              </p>
-              <p className="flex justify-between font-bold">
-                <span>تكلفة الباقة:</span>
-                <span className="font-normal">{selectedPackage.cost} د.م.</span>
-              </p>
-              <p className="flex justify-between font-bold">
-                <span>مدة الباقة:</span>
-                <span className="font-normal">{selectedPackage.duration}</span>
-              </p>
-              <p className="flex justify-between font-bold">
-                <span>مدة الإعلان:</span>
-                <span className="font-normal">{selectedPackage.adLength} ثواني</span>
-              </p>
-            </div>
-            
-            
-            ) : (
-              // Otherwise, show slots data
-              <table className="min-w-full bg-white mt-4">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-2">التاريخ</th>
-                    <th className="px-4 py-2">الساعة</th>
-                    <th className="px-4 py-2">الثمن</th>
-                    <th className="px-4 py-2">إجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedSlots.map((slot, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="px-4 py-2">{new Date(slot.date).toLocaleDateString("en-GB")}</td>
-                      <td className="px-4 py-2">
-                        {new Date(slot.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                        {new Date(slot.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td className="px-4 py-2">{slot.cost} درهم</td>
-                      <td className="px-4 py-2 text-red-600 cursor-pointer">حذف</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <p className="text-lg font-bold">المجموع: {totalPrice} درهم</p>
-              </table>
-            )}
-
-           
-          </section>
 
           {/* Second Container */}
           <div className="flex justify-end mt-6">
