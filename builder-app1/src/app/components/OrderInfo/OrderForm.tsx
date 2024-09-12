@@ -204,17 +204,18 @@ const OrderForm: React.FC = () => {
 
     return (
       <div className="flex flex-col items-center justify-center h-full w-full p-4 bg-white">
-        <h1 className="text-2xl font-bold mb-4">تم قبول الطلبية بنجاح</h1>
-        <p className="mb-4">يتعين عليك الآن الذهاب إلى أقرب مركز وٱفاكاش من أجل أداء المبلغ المطلوب و المتمثل في:</p>
-        <p className="text-3xl font-bold text-blue-600 mb-4">{displayPrice} درهم مغربي</p>
-        <p className="mb-4">المرجو الإدلاء بالعوان التالي أثناء الأداء:</p>
-        <p className="text-xl font-bold">Radio Online. N° : {radiocashcode}</p>
-        <p className="mb-4">بعد الأداء المرجو إدخال الكود في الخانة المخصصة في</p>
-        <a href="#" className="text-blue-500 mb-4">طلباتي الحالية</a>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={goToHome}>
-          العودة إلى الصفحة الرئيسية
-        </button>
-      </div>
+  <h1 className="text-2xl font-bold mb-4 leading-tight tracking-wide">تم قبول الطلبية بنجاح</h1>
+  <p className="mb-4 leading-normal text-base">يتعين عليك الآن الذهاب إلى أقرب مركز وٱفاكاش من أجل أداء المبلغ المطلوب و المتمثل في:</p>
+  <p className="text-3xl font-bold text-blue-600 mb-4">5400.00 درهم مغربي</p>
+  <p className="mb-4 leading-normal text-base">المرجو الإدلاء بالعوان التالي أثناء الأداء:</p>
+  <p className="text-xl font-bold">Radio Online. N° : {radiocashcode}</p>
+  <p className="mb-4 leading-normal text-base">بعد الأداء المرجو إدخال الكود في الخانة المخصصة في</p>
+  <a href="#" className="text-blue-500 mb-4">طلباتي الحالية</a>
+  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={goToHome}>
+    العودة إلى الصفحة الرئيسية
+  </button>
+</div>
+
     );
   }
 
