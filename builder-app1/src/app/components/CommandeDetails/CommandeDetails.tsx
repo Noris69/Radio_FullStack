@@ -1,18 +1,59 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+interface Slot {
+  _id: string;
+  startTime: Date;
+  endTime: Date;
+  confirmed: boolean;
+  date: string; // Assuming date is a string
+}
+
+
+// Define the Reservation interface
+// Update the Reservation interface
+interface Reservation {
+  _id: string;
+  adname: string;
+  created_at: string;
+  totalPrice: number;
+  status: string;
+  paymentStatus: string;
+  isPublished: string;
+  slots: Slot[];
+  user_id: {
+    username: string;
+  };
+  audioFile: string;
+  type?: string;  // Add type as an optional field
+}
+
 
 const CommandeDetails = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [reservation, setReservation] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [selectedSlotId, setSelectedSlotId] = useState(null);
-  
+ const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null); // Update type to accept string or null
+const [selectedDate, setSelectedDate] = useState<Date | null>(null);       // Update type to accept Date or null
+const [selectedTime, setSelectedTime] = useState<Date | null>(null);
+const timeDifference = selectedDate && selectedTime ? selectedDate.getTime() - selectedTime.getTime() : null;
 
+// Initialize the state with the correct type and default values
+const [reservation, setReservation] = useState<Reservation>({
+  _id: '',
+  adname: '',
+  created_at: '',
+  totalPrice: 0,
+  status: '',
+  paymentStatus: '',
+  isPublished: '',
+  slots: [],  // Initialize with an empty array
+  user_id: {
+    username: '',
+  },
+  audioFile: ''
+});
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id'); // Get the reservation ID from the URL
@@ -63,11 +104,13 @@ useEffect(() => {
         const updatedReservation = await response.json();
         console.log('Updated Reservation:', updatedReservation);  // Check if the data is updated
   
-        // Update the reservation state with the new status
-        setReservation(prevReservation => ({
-          ...prevReservation,
-          status: updatedReservation.status,
-        }));
+        // Update the reservation state
+setReservation(prevReservation => ({
+  ...prevReservation,
+  slots: prevReservation.slots.map(slot =>
+    slot._id === selectedSlotId ? { ...slot, confirmed: true } : slot
+  ),
+}));
   
         closeConfirmModal();  // Close the modal after successful update
       } else {
@@ -156,12 +199,12 @@ useEffect(() => {
     setIsRejectModalOpen(false);
   };
 
-  const openPublishModal = (slotId, date, time) => {
-    setSelectedSlotId(slotId); // Stockez l'ID du slot sélectionné
+  const openPublishModal = (slotId: string, date: Date, time: Date) => {
+    setSelectedSlotId(slotId); // Store the selected slot ID
     setSelectedDate(date);
     setSelectedTime(time);
-    setIsPublishModalOpen(true);
   };
+  
   
   const closePublishModal = () => {
     setIsPublishModalOpen(false);
@@ -349,11 +392,16 @@ useEffect(() => {
           </span>
         ) : (
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-            onClick={() => openPublishModal(slot._id, slotDate.toLocaleDateString('en-GB'), new Date(slot.startTime).toLocaleTimeString('en-GB'))}
-          >
-            تأكيد النشر
-          </button>
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+          onClick={() => openPublishModal(
+            slot._id, 
+            slotDate,  // Pass the Date object instead of a string
+            new Date(slot.startTime)  // Pass the startTime as a Date object
+          )}
+        >
+          تأكيد النشر
+        </button>
+        
         )}
       </td>
     </tr>
@@ -420,11 +468,12 @@ useEffect(() => {
             <div className="my-4">
               <label htmlFor="reason" className="block text-gray-700 mb-2">سبب الرفض</label>
               <textarea
-                id="reason"
-                className="w-full p-2 border border-gray-300 rounded-md"
-                rows="4"
-                placeholder="المرجو كتابة سبب (رفض الملف الصوتي) (اختياري)"
-              ></textarea>
+  id="reason"
+  className="w-full p-2 border border-gray-300 rounded-md"
+  rows={4}  // Change to number by removing quotes
+  placeholder="المرجو كتابة سبب (رفض الملف الصوتي) (اختياري)"
+></textarea>
+
             </div>
             <button
               onClick={closeRejectModal}
@@ -447,8 +496,9 @@ useEffect(() => {
             <p className="my-4">
              : هل أنت موافق على تأكيد نشر هذا الملف الصوتي للتاريخ التالي 
               <br />
-              <strong>{selectedDate} - {selectedTime}</strong>
-            </p>
+              <strong>
+  {selectedDate ? selectedDate.toLocaleDateString() : ''} - {selectedTime ? selectedTime.toLocaleTimeString() : ''}
+</strong>            </p>
             <div className="flex justify-between">
               <button
                 onClick={closePublishModal}

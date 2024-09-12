@@ -1,58 +1,61 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import ToggleSwitch from './ToggleSwitch'; // Adjust the path if necessary
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale'; // Importez la locale arabe directement de date-fns
 
-const TimeSlots = () => {
-  const [search, setSearch] = useState('');
-  const [showReserved, setShowReserved] = useState(true);
-  const [showUnreserved, setShowUnreserved] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [timeSlots, setTimeSlots] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Date d'aujourd'hui
-  const [showModal, setShowModal] = useState(false);
-  const [isReserved, setIsReserved] = useState(false);
-  const [newSlot, setNewSlot] = useState({
-    date: selectedDate,
-    startTime: '',
-    endTime: '',
-    cost: '',
+interface Slot {
+  _id: string;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
+  duration: number;
+  reserved: boolean;
+  client: string;
+  cost: number;
+}
+
+const TimeSlots: React.FC = () => {
+  const [search, setSearch] = useState<string>('');
+  const [showReserved, setShowReserved] = useState<boolean>(true);
+  const [showUnreserved, setShowUnreserved] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [timeSlots, setTimeSlots] = useState<Slot[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // Date object
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [newSlot, setNewSlot] = useState<Slot>({
+    _id: '',
+    date: new Date(),
+    startTime: new Date(),
+    endTime: new Date(),
+    duration: 0,
+    reserved: false,
+    client: '',
+    cost: 0,
   });
-  
-  const handleModalInputChange = (e) => {
+
+  const handleModalInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewSlot({
       ...newSlot,
-      [name]: value,  // Garde les valeurs telles qu'elles sont (chaînes pour les heures)
+      [name]: name === 'cost' || name === 'duration' ? Number(value) : value,
     });
   };
-  
+
   const handleCreateSlot = async () => {
     try {
-      // Combine correctement la date et l'heure ici avant de les envoyer au serveur
-      const startDateTime = new Date(`${newSlot.date}T${newSlot.startTime}`);
-      const endDateTime = new Date(`${newSlot.date}T${newSlot.endTime}`);
-
-      const slotToSend = {
-        ...newSlot,
-        startTime: startDateTime,  // Envoie en tant qu'objet Date complet
-        endTime: endDateTime,
-      };
-
       const response = await fetch('https://radio-fullstack.onrender.com/api/slots/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(slotToSend),  // send the slot with Date objects
+        body: JSON.stringify(newSlot),
       });
-  
+
       if (response.ok) {
-        const createdSlot = await response.json();
         setShowModal(false);
-        setNewSlot({ date: selectedDate, startTime: '', endTime: '', cost: '' }); // Reset the form
-  
-        // Reload the slots for the selected date
+        setNewSlot({ ...newSlot, startTime: new Date(), endTime: new Date(), cost: 0 });
         fetchSlots(selectedDate);
       } else {
         console.error('Failed to create slot');
@@ -61,13 +64,20 @@ const TimeSlots = () => {
       console.error('Error creating slot:', error);
     }
   };
-  
-  const fetchSlots = async (date) => {
+
+  const fetchSlots = async (date: Date) => {
     try {
-      const response = await fetch(`https://radio-fullstack.onrender.com/api/reservations/slots?date=${date}`);
+      const response = await fetch(`https://radio-fullstack.onrender.com/api/reservations/slots?date=${date.toISOString()}`);
       if (response.ok) {
         const data = await response.json();
-        setTimeSlots(data);
+        // Assuming the response contains date strings, convert them back to Date objects
+        const formattedSlots = data.map((slot: any) => ({
+          ...slot,
+          date: new Date(slot.date),
+          startTime: new Date(slot.startTime),
+          endTime: new Date(slot.endTime),
+        }));
+        setTimeSlots(formattedSlots);
       } else {
         console.error('Failed to fetch time slots');
       }
@@ -80,11 +90,11 @@ const TimeSlots = () => {
     fetchSlots(selectedDate);
   }, [selectedDate]);
 
-  const handleDateChange = (e) => {
-    setSelectedDate(e.target.value);
+  const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(new Date(e.target.value));
   };
 
-  const handleToggle = (id) => {
+  const handleToggle = (id: string) => {
     setTimeSlots((prevSlots) =>
       prevSlots.map((slot) =>
         slot._id === id ? { ...slot, reserved: !slot.reserved } : slot
@@ -99,19 +109,25 @@ const TimeSlots = () => {
 
   const totalPages = Math.ceil(timeSlots.length / timeSlotsPerPage);
 
-  const formatDate = (date) => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Intl.DateTimeFormat('ar-MA', options).format(new Date(date));
+  const formatDate = (date: Date) => {
+    // Utiliser des options pour obtenir le jour de la semaine, le jour, le mois et l'année
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',  // Nom complet du jour de la semaine
+      year: 'numeric',  // Année complète
+      month: 'long',    // Nom complet du mois
+      day: 'numeric',   // Jour du mois
+    };
+    return new Intl.DateTimeFormat('ar-MA', options).format(date);
   };
-
+  
   return (
     <div className="h-screen w-full flex flex-col p-4 bg-white">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">{formatDate(selectedDate)}</h1>
-        <input 
+      <h1 className="text-2xl font-bold">{formatDate(selectedDate)}</h1>
+      <input 
           type="date" 
           className="border px-3 py-2 rounded-lg" 
-          value={selectedDate} 
+          value={selectedDate.toISOString().split('T')[0]} 
           onChange={handleDateChange} 
         />
         <button
@@ -180,17 +196,17 @@ const TimeSlots = () => {
           </select>
         </div>
         <div className="flex space-x-1">
-          {[...Array(totalPages).keys()].map((page) => (
-            <button
-              key={page + 1}
-              onClick={() => setCurrentPage(page + 1)}
-              className={`border px-3 py-2 rounded-lg ${
-                currentPage === page + 1 ? 'bg-blue-600 text-white' : ''
-              }`}
-            >
-              {page + 1}
-            </button>
-          ))}
+        {[...Array(totalPages)].map((_, index) => (
+    <button
+      key={index + 1}
+      onClick={() => setCurrentPage(index + 1)}
+      className={`border px-3 py-2 rounded-lg ${
+        currentPage === index + 1 ? 'bg-blue-600 text-white' : ''
+      }`}
+    >
+      {index + 1}
+    </button>
+  ))}
         </div>
       </div>
 
@@ -224,7 +240,7 @@ const TimeSlots = () => {
                   type="date"
                   className="w-full px-3 py-2 border rounded-lg"
                   name="date"
-                  value={newSlot.date}
+                  value={newSlot.date.toISOString().split('T')[0]} // Convert Date to string
                   onChange={handleModalInputChange}
                 />
               </div>
@@ -235,14 +251,14 @@ const TimeSlots = () => {
                     type="time"
                     className="border px-3 py-2 rounded-lg"
                     name="startTime"
-                    value={newSlot.startTime}
+                    value={newSlot.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} // Convert Date to string
                     onChange={handleModalInputChange}
                   />
                   <input
                     type="time"
                     className="border px-3 py-2 rounded-lg"
                     name="endTime"
-                    value={newSlot.endTime}
+                    value={newSlot.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} // Convert Date to string
                     onChange={handleModalInputChange}
                   />
                 </div>

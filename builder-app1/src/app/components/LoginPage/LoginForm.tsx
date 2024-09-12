@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios, {AxiosError} from 'axios';
 import { useRouter } from 'next/navigation'; // Utilisation de next/navigation pour la redirection
 import InputField from './InputField';
 import Header from './Header';
@@ -28,19 +28,18 @@ const LoginForm: React.FC = () => {
       const res = await axios.post('https://radio-fullstack.onrender.com/api/users/login', { email, password });
       console.log('Login successful:', res.data);
   
-      // Store token and user details
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('userId', res.data.userId);
-      localStorage.setItem('role', res.data.role); // Store role
+      localStorage.setItem('role', res.data.role);
   
-      // Redirect based on role
       if (res.data.role === 'admin') {
-        router.push('/OrderList'); // Redirect to admin page
+        router.push('/OrderList');
       } else {
-        router.push('/'); // Redirect to annonceur page
+        router.push('/');
       }
     } catch (err) {
-      console.error('Login error:', err.response ? err.response.data : err.message);
+      const error = err as AxiosError;  // Type assertion
+      console.error('Login error:', error.response ? error.response.data : error.message);
       setError('Invalid Credentials');
     }
   };
@@ -70,8 +69,8 @@ const LoginForm: React.FC = () => {
         setFormState('login');
       }, 2000);
     } catch (err) {
-      console.error(err.response.data);
-      setError('User already exists or other registration error');
+      const error = err as AxiosError; // Assert err as AxiosError
+      console.error(error.response?.data || error.message); // Safely access error response      setError('User already exists or other registration error');
     }
   };
 

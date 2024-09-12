@@ -1,17 +1,30 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+
+interface Reservation {
+  _id: string;
+  adname: string;
+  isPublished: string;
+  paymentStatus: string;
+  status: string;
+  totalPrice: number;
+  created_at: string;
+  slots: { date: string; startTime: string; endTime: string; confirmed: boolean }[];
+  audioFile: string;
+  type?: string;
+}
 
 const CommandeUser = () => {
-  const [reservation, setReservation] = useState(null);
-  const [totalReservations, setTotalReservations] = useState(0); // State for total reservations
-  const router = useRouter();
+  const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [totalReservations, setTotalReservations] = useState(0);
   const searchParams = useSearchParams();
   const id = searchParams.get('id'); // Get the reservation ID from the URL
 
-  // Fetch reservation details
   useEffect(() => {
     const fetchReservation = async () => {
+      if (!id) return; // Early exit if no ID is found
+
       try {
         const response = await fetch(`https://radio-fullstack.onrender.com/api/reservations/${id}`, {
           method: 'GET',
@@ -25,7 +38,7 @@ const CommandeUser = () => {
           const data = await response.json();
           console.log("Fetched Reservation Data:", data);
           setReservation(data);
-          setTotalReservations(data.totalReservations || 0); // Set total reservations count
+          setTotalReservations(data.totalReservations || 0);
         } else {
           console.error('Failed to fetch reservation details');
         }
@@ -34,15 +47,19 @@ const CommandeUser = () => {
       }
     };
 
-    if (id) {
-      fetchReservation();
-    }
+    fetchReservation();
   }, [id]);
 
   if (!reservation) {
-    return <div>Loading...</div>; // Show loading indicator while data is being fetched
+    return <div>Loading...</div>;
   }
-
+  const calculateDurationInSeconds = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const durationInSeconds = (endDate.getTime() - startDate.getTime()) / 1000;
+    return durationInSeconds;
+  };
+  
   return (
     <div className="relative p-4 md:p-8 bg-gray-50 space-y-6 w-full">
       {/* Première carte : Header et Statut */}
@@ -136,18 +153,44 @@ const CommandeUser = () => {
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">عدد الطلبات السابقة:</span>
-                <span className="font-semibold">{totalReservations}</span> {/* Display total reservations */}
+                <span className="font-semibold">{totalReservations}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ligne de séparation */}
-
-        {/* Section des rendez-vous de النشر et des informations de الدفع */}
+        {/* Section des rendez-vous de النشر et des informations de paiement */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
           <div className="pr-0 md:pr-8">
             <h2 className="text-lg font-semibold mb-4">مواعيد النشر ({reservation.slots.length})</h2>
+            <table className="min-w-full text-right">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 text-sm font-semibold text-gray-600">التاريخ</th>
+                  <th className="px-4 py-2 text-sm font-semibold text-gray-600">المدة (ثواني)</th>
+                  <th className="px-4 py-2 text-sm font-semibold text-gray-600">الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reservation.slots.map((slot, index) => (
+                  <tr key={index} className="border-b border-gray-200">
+                    <td className="px-4 py-2 text-sm">{new Date(slot.date).toLocaleDateString()}</td>
+                    <td className="px-4 py-2 text-sm">{calculateDurationInSeconds(slot.startTime, slot.endTime)}</td>
+                    <td className="px-4 py-2 text-sm">
+                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                        slot.confirmed ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                      }`}>
+                        {slot.confirmed ? 'مؤكد' : 'غير مؤكد'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pl-0 md:pl-8">
+            <h2 className="text-lg font-semibold mb-4">معلومات الدفع</h2>
             <table className="min-w-full text-right">
               <thead>
                 <tr>
@@ -157,49 +200,19 @@ const CommandeUser = () => {
                 </tr>
               </thead>
               <tbody>
-                {reservation.slots.map((slot, index) => {
-                  const slotDate = new Date(slot.date);  // Convertir la date reçue en objet `Date`
-                  return (
-                    <tr key={index} className="border-b border-gray-200">
-                      <td className="px-4 py-2">
-                        {slotDate.toLocaleDateString('en-GB')}  {/* Formatage en "jour-mois-année" */}
-                      </td>
-                      <td className="px-4 py-2">
-                        {new Date(slot.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} - 
-                        {new Date(slot.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        {slot.confirmed ? (
-                          <span className="bg-green-100 text-green-600 px-4 py-2 rounded-lg">
-                            تم النشر
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">لم يتم النشر بعد</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                <tr className="border-b border-gray-200">
+                  <td className="px-4 py-2 text-sm">{new Date(reservation.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 text-sm">{new Date(reservation.created_at).toLocaleTimeString()}</td>
+                  <td className="px-4 py-2 text-sm">
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                      reservation.paymentStatus === 'مدفوع' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                    }`}>
+                      {reservation.paymentStatus}
+                    </span>
+                  </td>
+                </tr>
               </tbody>
             </table>
-          </div>
-          <div className="pl-0 md:pl-8 border-l-0 md:border-l border-gray-200">
-            <h2 className="text-lg font-semibold mb-4">معلومات عن الدفع</h2>
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">نوعية الدفع:</span>
-              <span className="font-semibold">كاش باك</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">كود الدفع:</span>
-              <span className="font-semibold">X1461SDF8</span>
-            </div>
-            {reservation.paymentStatus === 'يتم' ? (
-              <div className="bg-green-100 text-green-600 px-4 py-2 rounded-lg mt-4 text-center">
-                تم الدفع
-              </div>
-            ) : (
-              <span className="text-gray-500">لم يتم الدفع بعد</span>
-            )}
           </div>
         </div>
       </div>

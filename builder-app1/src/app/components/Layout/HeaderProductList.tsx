@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import AudioPlayer from "../AudioPlayer/AudioPlayer";
 import Logo from "./Logo";
-
+interface User {
+  profilePic: string;
+}
 const HeaderProductList: React.FC = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);  // Set user type
 
   // Fetch the user profile data when the component mounts
   useEffect(() => {

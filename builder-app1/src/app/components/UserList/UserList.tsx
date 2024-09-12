@@ -70,7 +70,7 @@ const UserList = () => {
       setShowForm(false);
       setEditMode(false);
       setCurrentUserId(null);
-      fetchUsers();
+      //fetchUsers();
     } catch (error) {
       console.error('Error submitting user:', error);
       toast.error('Failed to submit user');
@@ -102,7 +102,7 @@ const UserList = () => {
             try {
               await axios.delete(`https://radio-fullstack.onrender.com/api/users/${id}`);
               toast.success('User deleted successfully!');
-              fetchUsers();
+             // fetchUsers();
             } catch (error) {
               console.error('Error deleting user:', error);
               toast.error('Failed to delete user');

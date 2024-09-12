@@ -1,10 +1,15 @@
-import React, { useRef } from "react";
+"use client";
+import React, { useRef, ReactNode } from "react";
 import Header from "./Header";
 import Hero from "./Hero";
 import PackagesSection from "./PackagesSection";
 import BookingSection from "./BookingSection";
 
-const Layout: React.FC = () => {
+interface LayoutProps {
+  children: ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   const packagesSectionRef = useRef<HTMLDivElement>(null);
 
   const scrollToPackages = () => {
@@ -40,6 +45,9 @@ const Layout: React.FC = () => {
 
         <BookingSection />
       </div>
+
+      {/* This will render the children passed to Layout */}
+      {children}
     </div>
   );
 };

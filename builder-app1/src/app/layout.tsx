@@ -1,4 +1,4 @@
-// app/layout.tsx
+import React, { Suspense } from 'react';
 import { Inter } from '@next/font/google';
 import './globals.css';
 import { UserProvider } from './context/UserContext'; // Adjusted path
@@ -22,7 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="font-zain">
       <body className={inter.className}>
-        <UserProvider>{children}</UserProvider>
+        <UserProvider>
+          <Suspense fallback={<div>Loading...</div>}>
+            {children}
+          </Suspense>
+        </UserProvider>
       </body>
     </html>
   );

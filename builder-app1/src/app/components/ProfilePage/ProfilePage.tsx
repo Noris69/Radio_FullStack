@@ -1,19 +1,38 @@
-import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";  // Import useRouter for navigation and useSearchParams
+"use client";
+import React, { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
+// Define Reservation and User interfaces
+interface Reservation {
+  _id: string;
+  adname: string;
+  created_at: string;
+  status: string;
+}
+
+interface User {
+  username: string;
+  email: string;
+  phone: string;
+  role: string;
+  profilePic?: string;
+  currentOrders?: Reservation[];
+  previousOrders?: Reservation[];
+}
+
+// ProfilePage component
 const ProfilePage: React.FC = () => {
-  const [user, setUser] = useState(null);
-  const [currentReservations, setCurrentReservations] = useState([]);
-  const [pastReservations, setPastReservations] = useState([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [currentReservations, setCurrentReservations] = useState<Reservation[]>([]);
+  const [pastReservations, setPastReservations] = useState<Reservation[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const router = useRouter();  // Use the Next.js router for navigation
-  const searchParams = useSearchParams(); // Use useSearchParams from Next.js for query params
-  const userId = searchParams.get("userId");  // Get userId from query params
+  const router = useRouter();
+  const searchParams = useSearchParams(); // Wrapped in Suspense
+  const userId = searchParams.get("userId");
 
-  // Added useEffect to ensure re-render on userId update
   useEffect(() => {
-    if (!userId) return;  // If userId is not available, return early
-    
+    if (!userId) return;
+
     const fetchUserData = async () => {
       try {
         const response = await fetch(`https://radio-fullstack.onrender.com/api/users/${userId}`, {
@@ -36,7 +55,7 @@ const ProfilePage: React.FC = () => {
     };
 
     fetchUserData();
-  }, [userId]);  // Ensure this effect re-runs when userId changes
+  }, [userId]);
 
   const handleReservationClick = (reservationId: string) => {
     if (!user) return;
@@ -74,10 +93,14 @@ const ProfilePage: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setUser((prevUser) => ({
-          ...prevUser,
-          profilePic: data.profilePic,
-        }));
+        setUser((prevUser) =>
+          prevUser
+            ? {
+                ...prevUser,
+                profilePic: data.profilePic,
+              }
+            : null
+        );
       } else {
         console.error("Failed to upload image");
       }
@@ -87,7 +110,7 @@ const ProfilePage: React.FC = () => {
   };
 
   if (!user) {
-    return <div>Loading...</div>;  // Show loading indicator while fetching data
+    return <div>Loading...</div>;
   }
 
   return (
@@ -96,7 +119,10 @@ const ProfilePage: React.FC = () => {
         <div className="w-full lg:w-1/3 p-4 bg-white rounded-lg shadow-lg">
           <div className="flex flex-col items-center">
             <img
-              src={user.profilePic || "https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg"}
+              src={
+                user.profilePic ||
+                "https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg"
+              }
               alt="User Profile"
               className="mb-4 h-16 w-16 rounded-lg border border-solid border-gray-300 cursor-pointer"
               onClick={handleImageClick}
@@ -127,21 +153,24 @@ const ProfilePage: React.FC = () => {
         </div>
 
         <div className="w-full lg:w-2/3 p-4">
-          {/* Current Orders */}
           <div className="mb-6">
             <div className="bg-white rounded-lg p-4 shadow-lg">
               <h2 className="text-lg font-bold mb-4">الطلبات الحالية</h2>
 
-              {currentReservations?.length > 0 ? (
+              {currentReservations.length > 0 ? (
                 currentReservations.map((res, index) => (
                   <div
                     key={index}
                     className="grid grid-cols-2 md:grid-cols-3 gap-2 ml-2 mt-4 cursor-pointer"
-                    onClick={() => handleReservationClick(res._id)}  // Navigate when clicked
+                    onClick={() => handleReservationClick(res._id)}
                   >
                     <p className="font-bold">{res.adname}</p>
-                    <p className="text-[#94A3B8]">{new Date(res.created_at).toLocaleDateString()}</p>
-                    <p className="text-[#2563EB] bg-[#E9EFFD] p-1 rounded-md text-center hidden md:block">{res.status}</p>
+                    <p className="text-[#94A3B8]">
+                      {new Date(res.created_at).toLocaleDateString()}
+                    </p>
+                    <p className="text-[#2563EB] bg-[#E9EFFD] p-1 rounded-md text-center hidden md:block">
+                      {res.status}
+                    </p>
                   </div>
                 ))
               ) : (
@@ -150,20 +179,21 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Previous Orders */}
           <div className="mb-6">
             <div className="bg-white rounded-lg p-4 shadow-lg">
               <h2 className="text-lg font-bold mb-4">طلباتي السابقة</h2>
 
-              {pastReservations?.length > 0 ? (
+              {pastReservations.length > 0 ? (
                 pastReservations.map((res, index) => (
                   <div
                     key={index}
                     className="grid grid-cols-2 md:grid-cols-3 gap-2 ml-2 mt-4 cursor-pointer"
-                    onClick={() => handleReservationClick(res._id)}  // Navigate when clicked
+                    onClick={() => handleReservationClick(res._id)}
                   >
                     <p className="font-bold">{res.adname}</p>
-                    <p className="text-[#94A3B8]">{new Date(res.created_at).toLocaleDateString()}</p>
+                    <p className="text-[#94A3B8]">
+                      {new Date(res.created_at).toLocaleDateString()}
+                    </p>
                     <p
                       className={`text-center p-1 rounded-md ${
                         res.status === "يتم"
@@ -188,4 +218,11 @@ const ProfilePage: React.FC = () => {
   );
 };
 
-export default ProfilePage;
+// ProfilePage wrapped in Suspense
+const ProfileWithSuspense = () => (
+  <Suspense fallback={<div>Loading user data...</div>}>
+    <ProfilePage />
+  </Suspense>
+);
+
+export default ProfileWithSuspense;

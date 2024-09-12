@@ -3,10 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-const TimeSlots = () => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState('all');
-  const [timeSlots, setTimeSlots] = useState([]);
+interface Slot {
+  id: string;
+  client: string;
+  type: string;
+  date: string;
+  paymentStatus: string;
+  requestStatus: string;
+  publishDate: string;
+}
+
+const TimeSlots: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [timeSlots, setTimeSlots] = useState<Slot[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -16,7 +26,7 @@ const TimeSlots = () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`, // If you are using token-based authentication
+            Authorization: `Bearer ${localStorage.getItem('token')}`, 
           },
         });
 
@@ -34,7 +44,7 @@ const TimeSlots = () => {
     fetchReservations();
   }, []);
 
-  const handleRowClick = (id) => {
+  const handleRowClick = (id: string) => {
     router.push(`/CommandeDetails?id=${id}`);
   };
 
@@ -104,52 +114,49 @@ const TimeSlots = () => {
             </tr>
           </thead>
           <tbody className="text-gray-700">
-  {currentTimeSlots.map((slot) => (
-    <tr key={slot.id} className="hover:bg-gray-100 border-b border-gray-200">
-      <td className="px-4 py-3 border-none">{slot.client}</td>
-      <td className="px-4 py-3 border-none">{slot.type}</td>
+            {currentTimeSlots.map((slot) => (
+              <tr key={slot.id} className="hover:bg-gray-100 border-b border-gray-200">
+                <td className="px-4 py-3 border-none">{slot.client}</td>
+                <td className="px-4 py-3 border-none">{slot.type}</td>
 
-      {/* Format the date */}
-      <td className="px-4 py-3 border-none">{new Date(slot.date).toLocaleDateString('en-GB')}</td>
+                <td className="px-4 py-3 border-none">{new Date(slot.date).toLocaleDateString('en-GB')}</td>
 
-      <td className="px-4 py-3 border-none">
-        <span
-          className={`px-2 py-1 rounded-lg ${
-            slot.paymentStatus === 'تم'
-              ? 'bg-green-100 text-green-700'
-              : slot.paymentStatus === 'ملفي'
-              ? 'bg-red-100 text-red-700'
-              : 'bg-blue-100 text-blue-700'
-          }`}
-        >
-          {slot.paymentStatus}
-        </span>
-      </td>
+                <td className="px-4 py-3 border-none">
+                  <span
+                    className={`px-2 py-1 rounded-lg ${
+                      slot.paymentStatus === 'تم'
+                        ? 'bg-green-100 text-green-700'
+                        : slot.paymentStatus === 'ملفي'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {slot.paymentStatus}
+                  </span>
+                </td>
 
-      <td className="px-4 py-3 border-none">
-        <span
-          className={`px-2 py-1 rounded-lg ${
-            slot.requestStatus === 'مصدق'
-              ? 'bg-green-100 text-green-700'
-              : slot.requestStatus === 'غير مصدق'
-              ? 'bg-red-100 text-red-700'
-              : 'bg-blue-100 text-blue-700'
-          }`}
-        >
-          {slot.requestStatus}
-        </span>
-      </td>
+                <td className="px-4 py-3 border-none">
+                  <span
+                    className={`px-2 py-1 rounded-lg ${
+                      slot.requestStatus === 'مصدق'
+                        ? 'bg-green-100 text-green-700'
+                        : slot.requestStatus === 'غير مصدق'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {slot.requestStatus}
+                  </span>
+                </td>
 
-      {/* Format the publishDate */}
-      <td className="px-4 py-3 border-none">{new Date(slot.publishDate).toLocaleDateString('en-GB')}</td>
+                <td className="px-4 py-3 border-none">{new Date(slot.publishDate).toLocaleDateString('en-GB')}</td>
 
-      <td className="px-4 py-3 border-none font-bold cursor-pointer" onClick={() => handleRowClick(slot.id)}>
-        ...
-      </td>
-    </tr>
-  ))}
-</tbody>
-
+                <td className="px-4 py-3 border-none font-bold cursor-pointer" onClick={() => handleRowClick(slot.id)}>
+                  ...
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
 
@@ -166,18 +173,19 @@ const TimeSlots = () => {
           </select>
         </div>
         <div className="flex space-x-1">
-          {[...Array(totalPages).keys()].map((page) => (
-            <button
-              key={page + 1}
-              onClick={() => setCurrentPage(page + 1)}
-              className={`border px-3 py-2 rounded-lg ${
-                currentPage === page + 1 ? 'bg-blue-600 text-white' : ''
-              }`}
-            >
-              {page + 1}
-            </button>
-          ))}
-        </div>
+  {Array.from(Array(totalPages).keys()).map((page) => (
+    <button
+      key={page + 1}
+      onClick={() => setCurrentPage(page + 1)}
+      className={`border px-3 py-2 rounded-lg ${
+        currentPage === page + 1 ? 'bg-blue-600 text-white' : ''
+      }`}
+    >
+      {page + 1}
+    </button>
+  ))}
+</div>
+
       </div>
     </div>
   );

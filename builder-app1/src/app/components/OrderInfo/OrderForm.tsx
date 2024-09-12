@@ -25,7 +25,7 @@ const OrderForm: React.FC = () => {
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null); // Store selected package
 
   const radiocashcode = "61609574108631";
-  const totalPrice = localStorage.getItem("totalPrice") || "0";
+  const [totalPrice, setTotalPrice] = useState<string>("0");
 
   interface Slot {
     _id: string;
@@ -41,23 +41,28 @@ const OrderForm: React.FC = () => {
   };
 
   useEffect(() => {
-    const orderType = localStorage.getItem("orderType");
-    if (orderType === "package") {
-      const storedPackage = JSON.parse(localStorage.getItem("selectedPackage") || "{}");
-      setSelectedPackage(storedPackage);
-    } else {
-      const storedSlotsIds = JSON.parse(localStorage.getItem("selectedSlots") || "[]");
-      const fetchSlotDetails = async () => {
-        try {
-          const response = await fetch("https://radio-fullstack.onrender.com/api/slots");
-          const allSlots = await response.json();
-          const filteredSlots = allSlots.filter((slot: Slot) => storedSlotsIds.includes(slot._id));
-          setSelectedSlots(filteredSlots);
-        } catch (error) {
-          console.error("Error fetching slots:", error);
-        }
-      };
-      fetchSlotDetails();
+    // Ensure this runs only on the client-side
+    if (typeof window !== "undefined") {
+      const orderType = localStorage.getItem("orderType");
+      setTotalPrice(localStorage.getItem("totalPrice") || "0");
+
+      if (orderType === "package") {
+        const storedPackage = JSON.parse(localStorage.getItem("selectedPackage") || "{}");
+        setSelectedPackage(storedPackage);
+      } else {
+        const storedSlotsIds = JSON.parse(localStorage.getItem("selectedSlots") || "[]");
+        const fetchSlotDetails = async () => {
+          try {
+            const response = await fetch("https://radio-fullstack.onrender.com/api/slots");
+            const allSlots = await response.json();
+            const filteredSlots = allSlots.filter((slot: Slot) => storedSlotsIds.includes(slot._id));
+            setSelectedSlots(filteredSlots);
+          } catch (error) {
+            console.error("Error fetching slots:", error);
+          }
+        };
+        fetchSlotDetails();
+      }
     }
   }, []);
 
@@ -86,58 +91,61 @@ const OrderForm: React.FC = () => {
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-          const userId = localStorage.getItem("userId"); // Fetch the logged-in user's ID from localStorage
+          // Ensure this runs only on the client-side
+          if (typeof window !== "undefined") {
+            const userId = localStorage.getItem("userId"); // Fetch the logged-in user's ID from localStorage
 
-          let reservationData;
-          if (selectedPackage) {
-            reservationData = {
-              user_id: userId, // Use the dynamic userId
-              package: selectedPackage,
-              adname: adName,
-              addomaine: adDomaine,
-              totalPrice:selectedPackage.cost,
-              audioFile: downloadURL,
-              audioDuration,
-            };
-          } else {
-            const slotIds = selectedSlots.map((slot) => slot._id);
-            reservationData = {
-              user_id: userId, // Use the dynamic userId
-              slots: slotIds,
-              adname: adName,
-              addomaine: adDomaine,
-              totalPrice,
-              audioFile: downloadURL,
-              audioDuration,
-            };
-          }
-
-          try {
-            const response = await fetch("https://radio-fullstack.onrender.com/api/reservations/create", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(reservationData),
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-              setNotification({ message: "La réservation a bien été réalisée", type: "success" });
-              setIsReservationSuccessful(true);
-
-              // Clear localStorage after reservation
-              localStorage.removeItem("selectedSlots");
-              localStorage.removeItem("selectedPackage");
-              localStorage.removeItem("orderType");
+            let reservationData;
+            if (selectedPackage) {
+              reservationData = {
+                user_id: userId, // Use the dynamic userId
+                package: selectedPackage,
+                adname: adName,
+                addomaine: adDomaine,
+                totalPrice:selectedPackage.cost,
+                audioFile: downloadURL,
+                audioDuration,
+              };
             } else {
-              setNotification({ message: data.msg || "Erreur lors de la création de la réservation", type: "error" });
+              const slotIds = selectedSlots.map((slot) => slot._id);
+              reservationData = {
+                user_id: userId, // Use the dynamic userId
+                slots: slotIds,
+                adname: adName,
+                addomaine: adDomaine,
+                totalPrice,
+                audioFile: downloadURL,
+                audioDuration,
+              };
             }
-          } catch (error) {
-            console.error("Error during reservation creation:", error);
-            setNotification({ message: "Erreur lors de la création de la réservation", type: "error" });
-          } finally {
-            setIsUploading(false);
+
+            try {
+              const response = await fetch("https://radio-fullstack.onrender.com/api/reservations/create", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(reservationData),
+              });
+
+              const data = await response.json();
+              if (response.ok) {
+                setNotification({ message: "La réservation a bien été réalisée", type: "success" });
+                setIsReservationSuccessful(true);
+
+                // Clear localStorage after reservation
+                localStorage.removeItem("selectedSlots");
+                localStorage.removeItem("selectedPackage");
+                localStorage.removeItem("orderType");
+              } else {
+                setNotification({ message: data.msg || "Erreur lors de la création de la réservation", type: "error" });
+              }
+            } catch (error) {
+              console.error("Error during reservation creation:", error);
+              setNotification({ message: "Erreur lors de la création de la réservation", type: "error" });
+            } finally {
+              setIsUploading(false);
+            }
           }
         }
       );
@@ -159,7 +167,7 @@ const OrderForm: React.FC = () => {
 
   const formatDate = (date: Date) => {
     const options = { year: "numeric", month: "2-digit", day: "2-digit" };
-    return new Intl.DateTimeFormat("en-GB", options).format(date);
+    return new Intl.DateTimeFormat("en-GB").format(date);
   };
 
   const todayDate = formatDate(new Date());
@@ -212,22 +220,35 @@ const OrderForm: React.FC = () => {
 
             <div className="w-1/2 flex flex-col items-center">
               <h2 className="text-base font-bold tracking-wide leading-6 text-slate-900 text-center mb-2">الملف الصوتي</h2>
-              <div className="mt-3">{audioUrl ? <AudioPlayer src={audioUrl} controls /> : <p className="text-gray-600">لم يتم تحميل ملف صوتي.</p>}</div>
+              <div className="mt-3">{audioUrl ? <AudioPlayer src={audioUrl}  /> : <p className="text-gray-600">لم يتم تحميل ملف صوتي.</p>}</div>
             </div>
           </section>
+          <h2 className="text-xl font-extrabold tracking-wide leading-8 text-slate-900">تأكيد الطلبية</h2>
 
-          {/* Deuxième Container */}
           <section className="w-full bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-extrabold tracking-wide leading-8 text-slate-900">تأكيد الطلبية</h2>
 
             {selectedPackage ? (
               // If a package is selected, display package data
               <div className="mt-4">
-                <p className="font-bold">Package Name: {selectedPackage.name}</p>
-                <p className="font-bold">Package Cost: {selectedPackage.cost} د.م.</p>
-                <p className="font-bold">Package Duration: {selectedPackage.duration}</p>
-                <p className="font-bold">Ad Length: {selectedPackage.adLength} seconds</p>
-              </div>
+              <p className="flex justify-between font-bold">
+                <span>اسم الباقة:</span>
+                <span className="font-normal">{selectedPackage.name}</span>
+              </p>
+              <p className="flex justify-between font-bold">
+                <span>تكلفة الباقة:</span>
+                <span className="font-normal">{selectedPackage.cost} د.م.</span>
+              </p>
+              <p className="flex justify-between font-bold">
+                <span>مدة الباقة:</span>
+                <span className="font-normal">{selectedPackage.duration}</span>
+              </p>
+              <p className="flex justify-between font-bold">
+                <span>مدة الإعلان:</span>
+                <span className="font-normal">{selectedPackage.adLength} ثواني</span>
+              </p>
+            </div>
+            
+            
             ) : (
               // Otherwise, show slots data
               <table className="min-w-full bg-white mt-4">
@@ -256,42 +277,42 @@ const OrderForm: React.FC = () => {
               </table>
             )}
 
-            <div className="flex justify-between items-center mt-4">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={handleSave}>
-                متابعة الى الدفع
-              </button>
-            </div>
+           
           </section>
+
+          {/* Second Container */}
+          <div className="flex justify-end mt-6">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg mr-4"
+              onClick={() => setIsConfirmationStep(false)}
+            >
+              تعديل
+            </button>
+            <button
+              className="bg-green-600 text-white px-4 py-2 rounded-lg"
+              onClick={handleSave}
+              disabled={isUploading}
+            >
+              {isUploading ? `تحميل ${Math.round(progress)}%` : "إرسال"}
+            </button>
+          </div>
         </div>
       ) : (
         <form className="flex flex-col px-9 py-10 mx-8 mt-8 bg-white rounded-xl max-md:px-5 max-md:mr-2.5 max-md:max-w-full">
-          <FormField label="إسم الإشهار" placeholder="إشهار قهوة المهدي" value={adName} onChange={(e) => setAdName(e.target.value)} />
-          <FormField
-            label="الميدان"
-            placeholder="المرجو إختيار الميدان"
-            value={adDomaine}
-            onChange={(e) => setAdDomaine(e.target.value)}
-            icon="https://cdn.builder.io/api/v1/image/assets/TEMP/206b890c619ec5dfdf9713f67417d2025db0858a5238a74de0f525e58df6ee02?apiKey=85058072149448d6b350b930168b1cb5&&apiKey=85058072149448d6b350b930168b1cb5"
-          />
-          <AudioUpload label="الملف الصوتي" onFileSelect={handleFileSelect} audioUrl={audioUrl} />
-
-          {isUploading && (
-            <div className="w-full bg-gray-200 rounded-full mt-4">
-              <div
-                className="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full"
-                style={{ width: `${progress}%` }}
-              >
-                {Math.round(progress)}%
-              </div>
-            </div>
-          )}
-
+        <FormField label="إسم الإشهار" placeholder="إشهار قهوة المهدي" value={adName} onChange={(e) => setAdName(e.target.value)} />
+        <FormField
+          label="الميدان"
+          placeholder="المرجو إختيار الميدان"
+          value={adDomaine}
+          onChange={(e) => setAdDomaine(e.target.value)}
+          icon="https://cdn.builder.io/api/v1/image/assets/TEMP/206b890c619ec5dfdf9713f67417d2025db0858a5238a74de0f525e58df6ee02?apiKey=85058072149448d6b350b930168b1cb5&&apiKey=85058072149448d6b350b930168b1cb5"
+        />
+        <AudioUpload label="الملف الصوتي" onFileSelect={handleFileSelect} audioUrl={audioUrl} />
           <button
-            type="button"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
             onClick={() => setIsConfirmationStep(true)}
-            className="self-center p-2 mt-16 max-w-full text-base font-bold tracking-wide leading-6 text-white whitespace-nowrap bg-blue-600 rounded-xl w-[564px] max-md:px-5 max-md:mt-10"
           >
-            يلاتلا
+            معاينة
           </button>
         </form>
       )}

@@ -1,6 +1,9 @@
 import React from 'react';
-
-const ToggleSwitch = ({ isOn, handleToggle }) => {
+interface ToggleSwitchProps {
+  isOn: boolean;
+  handleToggle: () => void;
+}
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ isOn, handleToggle }) => {
   return (
     <div
       onClick={handleToggle}

@@ -48,7 +48,7 @@ const OrderDetails: React.FC = () => {
           </h2>
           <div className="mt-3">
             {uploadedAudioUrl ? (
-              <AudioPlayer src={uploadedAudioUrl} controls />
+              <AudioPlayer src={uploadedAudioUrl} />
             ) : (
               <div>
                 <input

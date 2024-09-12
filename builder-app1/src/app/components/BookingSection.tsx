@@ -1,19 +1,19 @@
 import React, { useState } from "react";
-import Calendar from "./Calendar";
+import CustomCalendar from "./Calendar";
 import TimeSlotList from "./TimeSlotList";
 import { useRouter } from "next/navigation"; 
 
 interface Slot {
   _id: string;
-  startTime: string;
-  endTime: string;
+  startTime: Date;
+  endTime: Date;
   cost: string;
-  date: string;
+  date: Date;
 }
 
 const BookingSection: React.FC = () => {
   const [selectedPrices, setSelectedPrices] = useState<number[]>([]);
-  const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]); 
+  const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const router = useRouter(); 
 
@@ -32,13 +32,11 @@ const BookingSection: React.FC = () => {
   };
 
   const handleBooking = () => {
-    // Stocker les slots sélectionnés et le prix total dans le localStorage
     const slotsToStore = selectedSlots.map(slot => slot._id);
     localStorage.setItem("selectedSlots", JSON.stringify(slotsToStore));
     localStorage.setItem("totalPrice", totalPrice.toString());
     localStorage.setItem("orderType", "slot");
 
-    // Naviguer vers la page /Order
     router.push("/Order");
   };
 
@@ -64,7 +62,7 @@ const BookingSection: React.FC = () => {
           />
         </div>
         <div className="w-[35%] max-md:w-full">
-          <Calendar onDateChange={handleDateChange} />
+          <CustomCalendar onDateChange={handleDateChange} />
         </div>
       </div>
       <div className="flex gap-5 justify-between mt-12 w-full text-xl tracking-wide max-w-[1006px] max-md:flex-wrap max-md:mt-10 max-md:max-w-full self-center">
