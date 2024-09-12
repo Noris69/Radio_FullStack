@@ -140,7 +140,7 @@ const ProfilePage: React.FC = () => {
             accept="image/*"
           />
 
-          <div className="mt-6">
+          <div className="mt-6 text-black">
             <p className="font-bold">الاسم الكامل</p>
             <p className="text-slate-600 mb-4">{user.username}</p>
             <p className="font-bold">البريد الإلكتروني</p>
@@ -152,7 +152,7 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full lg:w-2/3 p-4">
+        <div className="w-full lg:w-2/3 p-4 text-black">
           <div className="mb-6">
             <div className="bg-white rounded-lg p-4 shadow-lg">
               <h2 className="text-lg font-bold mb-4">الطلبات الحالية</h2>
@@ -179,7 +179,7 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-6 text-black">
             <div className="bg-white rounded-lg p-4 shadow-lg">
               <h2 className="text-lg font-bold mb-4">طلباتي السابقة</h2>
 

@@ -44,7 +44,7 @@ const Header: React.FC = () => {
         <button className="text-slate-900" onClick={handleProfile}>
           حسابي
         </button>
-        <button className="border border-slate-900 px-4 py-1 rounded-md" onClick={handleLogout}>
+        <button className="border border-slate-900 px-4 py-1 rounded-md text-black" onClick={handleLogout}>
           تسجيل الخروج
         </button>
       </div>
