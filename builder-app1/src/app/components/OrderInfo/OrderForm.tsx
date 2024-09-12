@@ -203,14 +203,14 @@ const OrderForm: React.FC = () => {
     const displayPrice = selectedPackage ? selectedPackage.cost : totalPrice;
 
     return (
-      <div className="flex flex-col items-center justify-center h-full w-full p-4 bg-white">
-  <h1 className="text-2xl font-bold mb-4 leading-tight tracking-wide">تم قبول الطلبية بنجاح</h1>
-  <p className="mb-4 leading-normal text-base">يتعين عليك الآن الذهاب إلى أقرب مركز وٱفاكاش من أجل أداء المبلغ المطلوب و المتمثل في:</p>
+      <div className="flex flex-col items-center justify-center h-full w-full p-4 bg-white text-black">
+  <h1 className="text-2xl font-bold mb-4 leading-tight tracking-wide text-black">تم قبول الطلبية بنجاح</h1>
+  <p className="mb-4 leading-normal text-base text-black">يتعين عليك الآن الذهاب إلى أقرب مركز وٱفاكاش من أجل أداء المبلغ المطلوب و المتمثل في:</p>
   <p className="text-3xl font-bold text-blue-600 mb-4">5400.00 درهم مغربي</p>
-  <p className="mb-4 leading-normal text-base">المرجو الإدلاء بالعوان التالي أثناء الأداء:</p>
-  <p className="text-xl font-bold">Radio Online. N° : {radiocashcode}</p>
-  <p className="mb-4 leading-normal text-base">بعد الأداء المرجو إدخال الكود في الخانة المخصصة في</p>
-  <a href="#" className="text-blue-500 mb-4">طلباتي الحالية</a>
+  <p className="mb-4 leading-normal text-base text-black">المرجو الإدلاء بالعوان التالي أثناء الأداء:</p>
+  <p className="text-xl font-bold text-black">Radio Online. N° : {radiocashcode}</p>
+  <p className="mb-4 leading-normal text-base text-black">بعد الأداء المرجو إدخال الكود في الخانة المخصصة في</p>
+  <a href="#" className="text-blue-500 mb-4 ">طلباتي الحالية</a>
   <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={goToHome}>
     العودة إلى الصفحة الرئيسية
   </button>
@@ -255,7 +255,7 @@ const OrderForm: React.FC = () => {
 
           <section className="w-full bg-white p-6 rounded-lg shadow-md">
   {selectedPackage ? (
-    <div className="mt-4">
+    <div className="mt-4 text-black">
       <p className="flex justify-between font-bold">
         <span>اسم الباقة:</span>
         <span className="font-normal">{selectedPackage.name}</span>
@@ -274,13 +274,13 @@ const OrderForm: React.FC = () => {
       </p>
     </div>
   ) : (
-    <table className="min-w-full bg-white mt-4">
+    <table className="min-w-full bg-white mt-4 text-black">
       <thead>
         <tr>
-          <th className="px-4 py-2 text-right">التاريخ</th>
-          <th className="px-4 py-2 text-right">الساعة</th>
-          <th className="px-4 py-2 text-right">الثمن</th>
-          <th className="px-4 py-2 text-right">إجراء</th>
+          <th className="px-4 py-2 text-right text-black">التاريخ</th>
+          <th className="px-4 py-2 text-right text-black">الساعة</th>
+          <th className="px-4 py-2 text-right text-black">الثمن</th>
+          <th className="px-4 py-2 text-right text-black">إجراء</th>
         </tr>
       </thead>
       <tbody>

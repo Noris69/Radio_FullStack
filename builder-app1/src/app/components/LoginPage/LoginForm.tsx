@@ -103,7 +103,7 @@ const LoginForm: React.FC = () => {
             >
               تسجيل الدخول
             </button>
-            <p className="mt-6 text-sm font-medium mb-20">
+            <p className="mt-6 text-sm font-medium mb-20 text-black">
               ليس لديك حساب ؟{' '}
               <a href="#" onClick={handleToggleForm} className="font-bold text-blue-600">
                 تسجل الآن
