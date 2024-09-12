@@ -61,7 +61,7 @@ const CommandeUser = () => {
   };
   
   return (
-    <div className="relative p-4 md:p-8 bg-gray-50 space-y-6 w-full">
+    <div className="relative p-4 md:p-8 bg-gray-50 space-y-6 w-full text-black">
       {/* Première carte : Header et Statut */}
       <div className="bg-white p-4 md:p-6 rounded-lg shadow-md w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-4 space-y-4 md:space-y-0">
